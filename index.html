@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Side-Scrolling Typing Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="relative bg-gray-800 text-white overflow-hidden">
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+
+    <!-- Score Counter -->
+    <div id="score" class="absolute top-4 right-4 text-2xl font-bold z-10">
+        Score: 0
+    </div>
+
+    <!-- Word Prompt -->
+    <div id="wordPrompt" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 hidden">
+        <div class="text-center bg-gray-800 p-8 rounded shadow-lg">
+            <p class="text-xl mb-4">Type the word:</p>
+            <p id="currentWord" class="text-3xl font-bold"></p>
+            <input id="wordInput" type="text" class="mt-4 p-2 text-black rounded" autocomplete="off" autofocus>
+        </div>
+    </div>
+
+    <!-- JavaScript Code -->
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let player = {
+            x: canvas.width / 4,
+            y: canvas.height / 2,
+            width: 40,
+            height: 60,
+            speed: 5,
+            dy: 0,
+        };
+
+        let keys = {};
+        let words = [];
+        let score = 0;
+        let isTyping = false;
+        let currentWord = '';
+        let startTime = 0;
+
+        // Resize the canvas to fill browser window dynamically
+        window.addEventListener('resize', resizeCanvas, false);
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            player.x = canvas.width / 4;
+        }
+
+        resizeCanvas();
+
+        window.addEventListener('keydown', function(e) {
+            keys[e.code] = true;
+        });
+
+        window.addEventListener('keyup', function(e) {
+            keys[e.code] = false;
+        });
+
+        function update() {
+            if (!isTyping) {
+                if (keys['KeyW'] || keys['ArrowUp']) {
+                    player.dy = -player.speed;
+                } else if (keys['KeyS'] || keys['ArrowDown']) {
+                    player.dy = player.speed;
+                } else {
+                    player.dy = 0;
+                }
+
+                player.y += player.dy;
+
+                // Keep the player within the canvas bounds
+                if (player.y < 0) player.y = 0;
+                if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+            }
+
+            updateWords();
+            checkCollisions();
+        }
+
+        function draw() {
+            // Draw background gradient
+            let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a2a6c');
+            gradient.addColorStop(0.5, '#b21f1f');
+            gradient.addColorStop(1, '#fdbb2d');
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the player
+            drawPlayer();
+
+            // Draw the words
+            drawWords();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+
+            let playerGradient = ctx.createRadialGradient(0, 0, 5, 0, 0, 20);
+            playerGradient.addColorStop(0, '#ffffff');
+            playerGradient.addColorStop(1, '#00ff00');
+
+            ctx.fillStyle = playerGradient;
+            ctx.beginPath();
+            ctx.arc(0, 0, 20, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function generateWord() {
+            let wordList = ["example", "random", "variable", "function", "object", "array", "canvas", "javascript", "tailwind", "aesthetic", "challenge", "keyboard", "movement", "collision", "score", "player", "typing", "game", "sprite", "encounter", "adventure", "mystery", "exploration", "journey", "quest", "wander", "discover", "puzzle", "obstacle", "strategy", "skill", "reaction", "timing", "precision", "accuracy", "speed", "focus", "concentration", "attention", "awareness", "reflex", "dexterity", "endurance", "strength", "agility", "balance", "coordination", "tactics", "method", "approach", "technique", "system", "design", "pattern", "structure", "component", "element", "feature", "aspect", "property", "attribute", "quality", "characteristic", "trait", "nature", "essence", "core", "heart", "spirit", "soul", "mind", "body", "emotion", "feeling", "thought", "idea", "concept", "notion", "perception", "sensation", "experience", "memory", "imagination", "dream", "vision", "hope", "desire", "ambition", "goal", "objective", "target", "purpose", "intention", "plan", "scheme", "agenda", "program", "project", "mission", "operation", "task", "duty", "responsibility", "role", "position", "status", "rank", "title", "name", "identity", "self", "individual", "person", "human", "being", "life", "existence", "reality", "universe", "world", "earth", "environment", "ecosystem", "habitat", "climate", "weather", "season", "time", "moment", "second", "minute", "hour", "day", "week", "month", "year", "decade", "century", "millennium"];
+
+            let wordText = wordList[Math.floor(Math.random() * wordList.length)];
+
+            ctx.font = '20px Arial';
+            let textWidth = ctx.measureText(wordText).width;
+
+            let word = {
+                text: wordText,
+                x: canvas.width + Math.random() * canvas.width,
+                y: Math.random() * (canvas.height - 50) + 25,
+                width: textWidth,
+                height: 20,
+                speed: 2 + Math.random() * 3,
+            };
+
+            words.push(word);
+        }
+
+        function updateWords() {
+            for (let i = 0; i < words.length; i++) {
+                let word = words[i];
+                if (!isTyping) {
+                    word.x -= word.speed;
+                }
+
+                // Remove words that have moved off-screen
+                if (word.x + word.width < 0) {
+                    words.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        function drawWords() {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '20px Arial';
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            ctx.shadowBlur = 4;
+
+            for (let word of words) {
+                ctx.fillText(word.text, word.x, word.y);
+            }
+
+            // Reset shadow
+            ctx.shadowColor = 'transparent';
+        }
+
+        function checkCollisions() {
+            for (let i = 0; i < words.length; i++) {
+                let word = words[i];
+                if (player.x < word.x + word.width &&
+                    player.x + player.width > word.x &&
+                    player.y < word.y &&
+                    player.y + player.height > word.y - word.height) {
+
+                    // Collision detected
+                    currentWord = word.text;
+                    words.splice(i, 1);
+                    i--;
+                    startTypingChallenge(currentWord);
+                    break;
+                }
+            }
+        }
+
+        function startTypingChallenge(word) {
+            isTyping = true;
+            currentWord = word;
+            startTime = Date.now();
+
+            // Display the word prompt
+            document.getElementById('currentWord').textContent = currentWord;
+            document.getElementById('wordInput').value = '';
+            document.getElementById('wordPrompt').classList.remove('hidden');
+
+            // Focus on the input field
+            document.getElementById('wordInput').focus();
+        }
+
+        const wordInput = document.getElementById('wordInput');
+
+        wordInput.addEventListener('input', function() {
+            if (wordInput.value === currentWord) {
+                // Word typed correctly
+                let timeTaken = (Date.now() - startTime) / 1000; // in seconds
+                let pointsEarned = Math.max(100 - Math.floor(timeTaken * 10), 10); // Minimum of 10 points
+
+                score += pointsEarned;
+                document.getElementById('score').textContent = 'Score: ' + score;
+
+                // Hide the word prompt
+                document.getElementById('wordPrompt').classList.add('hidden');
+
+                isTyping = false;
+
+                // Focus back on the game
+                canvas.focus();
+            }
+        });
+
+        // Generate words at intervals
+        setInterval(generateWord, 2000); // Generate a new word every 2 seconds
+
+        // Start the game loop
+        gameLoop();
+    </script>
+</body>
+</html>
